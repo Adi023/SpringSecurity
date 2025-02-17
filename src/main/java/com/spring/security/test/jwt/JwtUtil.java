@@ -1,5 +1,6 @@
 package com.spring.security.test.jwt;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.function.Function;
@@ -16,20 +17,20 @@ import io.jsonwebtoken.security.Keys;
 public class JwtUtil {
 
 	// A secret key used to sign JWT tokens (must be long enough for HS256)
-	private final String SECRET_KEY = "heyThisIsAdityaPandhareFromKolhapurMaharashtra";
+	private final String SECRET_KEY = "heyThisIsAdityaPandhareFromKolha";
 
 	 // Generates a signing key from the secret key
 	private Key getSignInKey() {
-		return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+		return Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
 	}
 
 	// Extracts the username (subject) from the JWT token
-	private String extractUserName(String token) {
+	public String extractUserName(String token) {
 		return extractClaim(token, Claims::getSubject);
 	}
 
 	// Extracts a specific claim from the JWT token
-	private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+	public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
 		final Claims claim = extractAllClaims(token);
 		return claimsResolver.apply(claim);
 	}
@@ -41,10 +42,21 @@ public class JwtUtil {
 	}
 
 	// Generates a JWT token for a given UserDetails object
-	private String generateToken(UserDetails userDetails) {
-		return Jwts.builder().setSubject(userDetails.getUsername()).setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour validity
-				.signWith(getSignInKey(), SignatureAlgorithm.HS256).compact();
+	public String generateToken(UserDetails userDetails) {
+		System.out.println("JWTUtil class : username = "+userDetails.getUsername());
+		String token=null;
+		try {
+			 token=	Jwts.builder().setSubject(userDetails.getUsername()).setIssuedAt(new Date())
+					.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour validity
+					.signWith(getSignInKey(), SignatureAlgorithm.HS256).compact();
+				
+		}catch(Exception e) {
+			e.printStackTrace();
+			System.out.println("Token not generated");
+			
+		}
+			
+			return token;
 	}
 
 	// Validates the token by checking its username and expiration
@@ -54,7 +66,7 @@ public class JwtUtil {
 	}
 
 	// Checks if the token is expired
-	public boolean isTokenExpired(String token) {
+	private boolean isTokenExpired(String token) {
 		return extractClaim(token, Claims::getExpiration).before(new Date());
 	}
 

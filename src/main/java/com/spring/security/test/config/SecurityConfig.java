@@ -9,23 +9,25 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.spring.security.test.jwt.JwtAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity
 @EnableWebSecurity
 public class SecurityConfig {
 
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;//
 	private final CustomUserDetailService customUserDetailService;
 
-	public SecurityConfig(CustomUserDetailService customUserDetailService) {
+	public SecurityConfig(CustomUserDetailService customUserDetailService,JwtAuthenticationFilter jwtAuthenticationFilter) {
 		this.customUserDetailService = customUserDetailService;
+		this.jwtAuthenticationFilter=jwtAuthenticationFilter;
 	}
 
 	@Bean
@@ -37,15 +39,25 @@ public class SecurityConfig {
 	// spring 3.3 use below method
 	@Bean
 	protected SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		http.csrf(AbstractHttpConfigurer::disable)
-				.authorizeHttpRequests(auth -> auth.requestMatchers("/home/public").permitAll()
-						.requestMatchers("/home/admin").hasRole("ADMIN").requestMatchers("/home/normal")
-						.hasRole("NORMAL").anyRequest().authenticated()
-						)
-				.formLogin(form -> form.defaultSuccessUrl("/home", true) // Redirect after successful login
-						.permitAll())
-				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/home/public") // Redirect to public
-						.permitAll()); // page after logout
+		 http
+	        .csrf(AbstractHttpConfigurer::disable)
+	        .authorizeHttpRequests(auth -> auth
+	            .requestMatchers("/home/public").permitAll()
+	            .requestMatchers("/auth/login", "/auth/register").permitAll()
+	            .requestMatchers("/home/admin").hasAuthority("ROLE_ADMIN")
+	            .requestMatchers("/home/normal").hasAuthority("ROLE_USER")
+	            .requestMatchers("/users/**").hasAuthority("ROLE_USER") // Only ADMIN can access /users
+	            .anyRequest().authenticated()
+	        )
+				// Add JWT filter
+		.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+		.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        // Add custom JWT authentication filter
+
+//				.formLogin(form -> form.defaultSuccessUrl("/home", true) // Redirect after successful login
+//						.permitAll())
+//				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/home/public") // Redirect to public
+//						.permitAll()); // page after logout
 		return http.build();
 	}
 

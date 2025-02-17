@@ -17,23 +17,23 @@ import com.spring.security.test.repository.UserRepository;
 @Service
 public class CustomUserDetailService implements UserDetailsService {
 
-	 private final UserRepository userRepository; // Inject UserRepository
+	private final UserRepository userRepository; // Inject UserRepository
 
-	    public CustomUserDetailService(UserRepository userRepository) {
-	        this.userRepository = userRepository;
-	    }
-	
+	public CustomUserDetailService(UserRepository userRepository) {
+		this.userRepository = userRepository;
+	}
+
 	@Override
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-		 // Fetch user from database
-		UserEntity userEntity= userRepository.findByUsername(username).orElseThrow(()->
-		new UsernameNotFoundException("User Name not found"+username));
-		
+		// Fetch user from database
+		UserEntity userEntity = userRepository.findByUsername(username)
+				.orElseThrow(() -> new UsernameNotFoundException("User Name not found" + username));
+
 		// Convert roles to Spring Security format
-		List<GrantedAuthority> authorities =userEntity.getRoles().stream()
-				.map(role-> new SimpleGrantedAuthority("ROLE_"+role.getName())).collect(Collectors.toList());
-		
-		return new User(userEntity.getUsername(), userEntity.getPassword(), authorities );
+		List<GrantedAuthority> authorities = userEntity.getRoles().stream()
+				.map(role -> new SimpleGrantedAuthority(role.getName())).collect(Collectors.toList());
+		System.out.println("authorities " + authorities);
+		return new User(userEntity.getUsername(), userEntity.getPassword(), authorities);
 	}
 
 }
