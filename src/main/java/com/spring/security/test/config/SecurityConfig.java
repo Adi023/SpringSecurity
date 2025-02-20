@@ -43,7 +43,7 @@ public class SecurityConfig {
 	        .csrf(AbstractHttpConfigurer::disable)
 	        .authorizeHttpRequests(auth -> auth
 	            .requestMatchers("/home/public").permitAll()
-	            .requestMatchers("/auth/login", "/auth/register").permitAll()
+	            .requestMatchers("/auth/login", "/auth/register", "/auth/refresh").permitAll()
 	            .requestMatchers("/home/admin").hasAuthority("ROLE_ADMIN")
 	            .requestMatchers("/home/normal").hasAuthority("ROLE_USER")
 	            .requestMatchers("/users/**").hasAuthority("ROLE_USER") // Only ADMIN can access /users

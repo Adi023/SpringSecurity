@@ -1,5 +1,8 @@
 package com.spring.security.test.controllers;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -43,18 +46,59 @@ public class AuthController {
 			
 //			System.out.println("userDetails : "+userDetails);
 			
-			String token=jwtUtil.generateToken(userDetails);
+			String accessToken=jwtUtil.generateToken(userDetails);
+			String refreshToken=jwtUtil.generateRefreshToken(userDetails);
+			Map<String , String> tokens = new HashMap<>();
+			tokens.put("accessToken", accessToken);
+			tokens.put("refreshToken", refreshToken);
 			
 //			System.out.println("token : "+token);
 			
-			return ResponseEntity.ok(new AuthResponse(token));	
+			return ResponseEntity.ok(tokens	);	
 			
 		}catch(Exception e) {
 			System.out.println("login exception");
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credintials");
 		}
 		
-		
 //		return jwtUtil.generateToken(userDetails);
+	}
+	
+	@PostMapping("/refresh")
+	public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> requestMap){
+		String refreshToken=requestMap.get("refreshToken");
+		
+		if(refreshToken==null) {
+			return ResponseEntity.badRequest().body("Refresh token is missing");
+		}
+		try {
+			// Optionally check if the token is a refresh token
+			if(!jwtUtil.isRefreshToken(refreshToken))
+			{
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid token type");
+			}
+			
+			// Extract username from refresh token
+			String userName=jwtUtil.extractUserName(refreshToken);
+			UserDetails userDetails = userDetailsService.loadUserByUsername(userName);
+			
+			// Validate refresh token
+			if(!jwtUtil.validateToken(refreshToken, userDetails)) {
+				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token");
+			}
+			
+			//Generate new tokens
+			String newAccessToken=jwtUtil.generateToken(userDetails);
+			String newRefreshToken=jwtUtil.generateRefreshToken(userDetails);
+			
+			Map<String,String> tokens=new HashMap<>();
+			tokens.put("newAccessToken", newAccessToken);
+			tokens.put("newRefreshToken", newRefreshToken);
+			
+			return ResponseEntity.ok(tokens);
+		}catch(Exception e) {
+			e.printStackTrace();
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Could not refresh token");
+		}
 	}
 }

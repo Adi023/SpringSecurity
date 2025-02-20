@@ -41,22 +41,45 @@ public class JwtUtil {
 		return Jwts.parserBuilder().setSigningKey(getSignInKey()).build().parseClaimsJws(token).getBody();
 	}
 
-	// Generates a JWT token for a given UserDetails object
+	// Generates a JWT access token for a given UserDetails object
 	public String generateToken(UserDetails userDetails) {
 		System.out.println("JWTUtil class : username = "+userDetails.getUsername());
 		String token=null;
 		try {
-			 token=	Jwts.builder().setSubject(userDetails.getUsername()).setIssuedAt(new Date())
-					.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour validity
-					.signWith(getSignInKey(), SignatureAlgorithm.HS256).compact();
+			 token=	Jwts.builder()
+					 .setSubject(userDetails.getUsername())
+					 .setIssuedAt(new Date())
+					 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour validity
+					 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+					 .compact();
 				
 		}catch(Exception e) {
 			e.printStackTrace();
 			System.out.println("Token not generated");
-			
 		}
-			
 			return token;
+	}
+	
+	// Generate refresh token (longer-lived)
+	public String generateRefreshToken(UserDetails userDetails) {	
+		return Jwts.builder()
+				.setSubject(userDetails.getUsername())
+				.claim("tokenType", "refresh")
+				.setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis()+1000*60*60*24*7))//7 days validity
+				.signWith(getSignInKey(),SignatureAlgorithm.HS256)
+				.compact();
+	}
+	
+	// Optionally, you can add a method to verify if the token is a refresh token
+	public boolean isRefreshToken(String token) {
+		try {
+			Claims claims = extractAllClaims(token);
+			String tokenType = claims.get("tokenType",String.class);
+			return "refresh".equals(tokenType);
+		}catch(Exception e) {
+			return false;
+		}
 	}
 
 	// Validates the token by checking its username and expiration
